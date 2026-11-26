@@ -15,26 +15,23 @@ class GildedRose(object):
         item.quality = max(self.MIN_QUALITY, item.quality - amount)
 
     def _update_aged_brie(self, item):
-        self._increase_quality(item)
         item.sell_in -= 1
-        if item.sell_in < 0:
-            self._increase_quality(item)
+        increment = 2 if item.sell_in < 0 else 1
+        self._increase_quality(item, increment)
 
     def _update_backstage_pass(self, item):
-        self._increase_quality(item)
-        if item.sell_in < 11:
-            self._increase_quality(item)
-        if item.sell_in < 6:
-            self._increase_quality(item)
-        item.sell_in -= 1
-        if item.sell_in < 0:
+        if item.sell_in <= 0:
+            item.sell_in -= 1
             item.quality = self.MIN_QUALITY
+            return
+        increment = 3 if item.sell_in < 6 else (2 if item.sell_in < 11 else 1)
+        self._increase_quality(item, increment)
+        item.sell_in -= 1
 
     def _update_normal_item(self, item):
-        self._decrease_quality(item)
         item.sell_in -= 1
-        if item.sell_in < 0:
-            self._decrease_quality(item)
+        decrement = 2 if item.sell_in < 0 else 1
+        self._decrease_quality(item, decrement)
 
     def _update_single_item(self, item):
         if item.name == self.SULFURAS:
