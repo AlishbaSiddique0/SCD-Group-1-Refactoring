@@ -1,82 +1,76 @@
-class ItemUpdater:
-    MAX_QUALITY = 50
-    MIN_QUALITY = 0
-
-    def __init__(self, item):
-        self.item = item
-
-    def increase_quality(self, amount=1):
-        self.item.quality = min(self.MAX_QUALITY, self.item.quality + amount)
-
-    def decrease_quality(self, amount=1):
-        self.item.quality = max(self.MIN_QUALITY, self.item.quality - amount)
-
-    def update_sell_in(self):
-        self.item.sell_in -= 1
-
-    def update(self):
-        raise NotImplementedError("Subclasses must implement update()")
+import unittest
+from gilded_rose import Item, GildedRose
 
 
-class NormalItemUpdater(ItemUpdater):
-    def update(self):
-        self.update_sell_in()
-        decrement = 2 if self.item.sell_in < 0 else 1
-        self.decrease_quality(decrement)
+class GildedRoseTest(unittest.TestCase):
+    def test_normal_item_before_sell_date(self):
+        items = [Item("Normal Item", 10, 20)]
+        gilded_rose = GildedRose(items)
+        gilded_rose.update_quality()
+        self.assertEqual(9, items[0].sell_in)
+        self.assertEqual(19, items[0].quality)
+
+    def test_normal_item_after_sell_date(self):
+        items = [Item("Normal Item", 0, 20)]
+        gilded_rose = GildedRose(items)
+        gilded_rose.update_quality()
+        self.assertEqual(-1, items[0].sell_in)
+        self.assertEqual(18, items[0].quality)
+
+    def test_quality_never_negative(self):
+        items = [Item("Normal Item", 5, 0)]
+        gilded_rose = GildedRose(items)
+        gilded_rose.update_quality()
+        self.assertEqual(0, items[0].quality)
+
+    def test_aged_brie_increases_quality(self):
+        items = [Item("Aged Brie", 2, 0)]
+        gilded_rose = GildedRose(items)
+        gilded_rose.update_quality()
+        self.assertEqual(1, items[0].sell_in)
+        self.assertEqual(1, items[0].quality)
+
+    def test_quality_never_more_than_50(self):
+        items = [Item("Aged Brie", 2, 50)]
+        gilded_rose = GildedRose(items)
+        gilded_rose.update_quality()
+        self.assertEqual(50, items[0].quality)
+
+    def test_sulfuras_never_changes(self):
+        items = [Item("Sulfuras, Hand of Ragnaros", 0, 80)]
+        gilded_rose = GildedRose(items)
+        gilded_rose.update_quality()
+        self.assertEqual(0, items[0].sell_in)
+        self.assertEqual(80, items[0].quality)
+
+    def test_backstage_passes_increase_by_1(self):
+        items = [Item("Backstage passes to a TAFKAL80ETC concert", 15, 20)]
+        gilded_rose = GildedRose(items)
+        gilded_rose.update_quality()
+        self.assertEqual(14, items[0].sell_in)
+        self.assertEqual(21, items[0].quality)
+
+    def test_backstage_passes_increase_by_2_under_10_days(self):
+        items = [Item("Backstage passes to a TAFKAL80ETC concert", 10, 20)]
+        gilded_rose = GildedRose(items)
+        gilded_rose.update_quality()
+        self.assertEqual(9, items[0].sell_in)
+        self.assertEqual(22, items[0].quality)
+
+    def test_backstage_passes_increase_by_3_under_5_days(self):
+        items = [Item("Backstage passes to a TAFKAL80ETC concert", 5, 20)]
+        gilded_rose = GildedRose(items)
+        gilded_rose.update_quality()
+        self.assertEqual(4, items[0].sell_in)
+        self.assertEqual(23, items[0].quality)
+
+    def test_backstage_passes_drop_to_0_after_concert(self):
+        items = [Item("Backstage passes to a TAFKAL80ETC concert", 0, 20)]
+        gilded_rose = GildedRose(items)
+        gilded_rose.update_quality()
+        self.assertEqual(-1, items[0].sell_in)
+        self.assertEqual(0, items[0].quality)
 
 
-class AgedBrieUpdater(ItemUpdater):
-    def update(self):
-        self.update_sell_in()
-        increment = 2 if self.item.sell_in < 0 else 1
-        self.increase_quality(increment)
-
-
-class BackstagePassUpdater(ItemUpdater):
-    def update(self):
-        if self.item.sell_in <= 0:
-            self.update_sell_in()
-            self.item.quality = self.MIN_QUALITY
-            return
-        increment = 3 if self.item.sell_in < 6 else (2 if self.item.sell_in < 11 else 1)
-        self.increase_quality(increment)
-        self.update_sell_in()
-
-
-class SulfurasUpdater(ItemUpdater):
-    def update(self):
-        pass
-
-
-class GildedRose(object):
-    AGED_BRIE = "Aged Brie"
-    BACKSTAGE_PASS = "Backstage passes to a TAFKAL80ETC concert"
-    SULFURAS = "Sulfuras, Hand of Ragnaros"
-
-    UPDATER_MAP = {
-        AGED_BRIE: AgedBrieUpdater,
-        BACKSTAGE_PASS: BackstagePassUpdater,
-        SULFURAS: SulfurasUpdater,
-    }
-
-    def __init__(self, items):
-        self.items = items
-
-    def _create_updater(self, item):
-        updater_cls = self.UPDATER_MAP.get(item.name, NormalItemUpdater)
-        return updater_cls(item)
-
-    def update_quality(self):
-        for item in self.items:
-            updater = self._create_updater(item)
-            updater.update()
-
-
-class Item:
-    def __init__(self, name, sell_in, quality):
-        self.name = name
-        self.sell_in = sell_in
-        self.quality = quality
-
-    def __repr__(self):
-        return "%s, %s, %s" % (self.name, self.sell_in, self.quality)
+if __name__ == '__main__':
+    unittest.main()
