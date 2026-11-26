@@ -36,16 +36,20 @@ class GildedRose(object):
         if item.sell_in < 0:
             self._decrease_quality(item)
 
+    def _update_single_item(self, item):
+        if item.name == self.SULFURAS:
+            return
+        if item.name == self.AGED_BRIE:
+            self._update_aged_brie(item)
+            return
+        if item.name == self.BACKSTAGE_PASS:
+            self._update_backstage_pass(item)
+            return
+        self._update_normal_item(item)
+
     def update_quality(self):
         for item in self.items:
-            if item.name == self.SULFURAS:
-                continue
-            if item.name == self.AGED_BRIE:
-                self._update_aged_brie(item)
-            elif item.name == self.BACKSTAGE_PASS:
-                self._update_backstage_pass(item)
-            else:
-                self._update_normal_item(item)
+            self._update_single_item(item)
 
 
 class Item:
